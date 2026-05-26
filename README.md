@@ -1,38 +1,63 @@
 # aisdlc-astrojs
 
-Astro.js site bootstrapped with the [AI-SDLC](https://ai-sdlc.io/docs/getting-started) orchestrator. **Cursor is the agent runtime** for pipeline execution.
+Site Astro.js integrado ao [AI-SDLC](https://ai-sdlc.io/docs/getting-started). O runtime de agente é **Cursor** (`cursor-agent`).
 
-**Repositório:** https://github.com/jgabriellima/aisdlc-astrojs  
-**Issue pronta para processar:** [#1 — blog engine](https://github.com/jgabriellima/aisdlc-astrojs/issues/1)  
-**PR em andamento:** [#2 — blog engine implementation](https://github.com/jgabriellima/aisdlc-astrojs/pull/2)
+| Recurso | Link |
+| --- | --- |
+| Repositório | https://github.com/jgabriellima/aisdlc-astrojs |
+| Issue de exemplo | [#1 — blog engine](https://github.com/jgabriellima/aisdlc-astrojs/issues/1) |
+| PR de exemplo | [#2 — implementação](https://github.com/jgabriellima/aisdlc-astrojs/pull/2) |
 
-```sh
-cd ~/workspaces/jambu/aisdlc-astrojs
-npm run ai-sdlc:run -- --issue 1
+---
+
+## Como funciona (leia antes de rodar)
+
+O AI-SDLC **não cria issues**. Você descreve o trabalho numa issue do GitHub; o orchestrator **lê** essa issue e **produz** código + branch + PR.
+
+```text
+VOCÊ                          AI-SDLC (orchestrator + Cursor)
+────                          ────────────────────────────────
+Cria issue no GitHub    →     Busca issue #N via API
+Escreve ACs + label     →     Valida quality gates
+ai-eligible             →     Cria branch ai-sdlc/...
+                              Invoca cursor-agent
+                              Abre PR referenciando a issue
+VOCÊ revisa e merge     →     (humano no loop)
 ```
 
-## Prerequisites
+O número em `--issue N` é o **número da issue no GitHub** (`/issues/1` → `--issue 1`). Não é ID interno do framework.
 
-- Node.js >= 22
-- npm >= 9
-- [Cursor CLI](https://cursor.com/docs/cli) (`cursor-agent` on PATH)
-- `CURSOR_API_KEY` from Cursor Dashboard → Integrations
+---
 
-## Quick start
+## Setup inicial (uma vez)
 
-### 1. Environment
+Pré-requisitos: Node.js 22+, `gh` CLI, `cursor-agent` no PATH, conta GitHub autenticada.
+
+### 1. Clonar e instalar
+
+```sh
+git clone git@github.com:jgabriellima/aisdlc-astrojs.git
+cd aisdlc-astrojs
+npm install
+```
+
+### 2. Configurar Cursor
 
 ```sh
 cp .env.example .env
-# Edit .env — set CURSOR_API_KEY only; GitHub token comes from `gh auth login`
-gh auth login   # if not already authenticated
-
-npm run ai-sdlc:check-cursor
+# Edite .env e defina apenas CURSOR_API_KEY (Dashboard → Integrations)
 ```
 
-The CLI wrapper reads `.env` for `CURSOR_API_KEY` and resolves `GITHUB_TOKEN` from `gh auth token` automatically.
+**Não coloque `GITHUB_TOKEN` no `.env`.** PATs fine-grained costumam falhar ao criar branches (403). O wrapper em `scripts/ai-sdlc-cli.mjs` resolve o token via `gh auth token`.
 
-### 2. Verify Cursor runtime
+### 3. Autenticar GitHub
+
+```sh
+gh auth login          # escopo repo
+gh auth status         # confirmar conta jgabriellima (ou a sua)
+```
+
+### 4. Validar
 
 ```sh
 npm run ai-sdlc:check-cursor
@@ -40,263 +65,183 @@ npm run ai-sdlc:health
 npm run ai-sdlc:validate
 ```
 
-### 3. Astro dev server
+Todos devem passar (check-cursor pode avisar sobre `CURSOR_API_KEY` se `.env` estiver vazio).
 
-```sh
-npm install
-npm run dev
-```
+---
 
-Open `http://localhost:4321`.
+## Fluxo operacional (cada feature)
 
-### 4. AI-SDLC pipeline (Cursor runner)
+Use estes comandos na ordem. É o caminho documentado e testado neste repo.
 
-O parâmetro `--issue` é o **número da issue no GitHub** que o agente deve implementar — não é um ID interno do AI-SDLC. Você cria a issue primeiro (ver [tutorial abaixo](#tutorial-criar-uma-feature-com-ai-sdlc-exemplo-blog-engine)), anota o número que o GitHub atribui (ex.: `#3`) e passa esse valor:
+### Passo 1 — Criar a issue
 
-```sh
-# substitua 3 pelo número real da sua issue
-npm run ai-sdlc:run -- --issue 3
-```
-
-O orchestrator lê título, descrição e critérios de aceite dessa issue, cria a branch `ai-sdlc/<número>-<slug>`, roda o Cursor agent e abre um PR. Requer `GH_TOKEN` + repositório remoto configurado.
-
-The wrapper in `scripts/ai-sdlc-cli.mjs` injects `CursorRunner` (`cursor-agent --print`) instead of the stock CLI default (`ClaudeCodeRunner`).
-
-Optional model override:
-
-```sh
-export AI_SDLC_CURSOR_MODEL=composer-2
-```
-
-See the [Runners reference](https://ai-sdlc.io/docs/api-reference/runners) for env vars.
-
-## Tutorial: criar uma feature com AI-SDLC (exemplo: blog engine)
-
-Este walkthrough mostra o fluxo completo — da issue no GitHub até o PR mergeável — usando Cursor como runtime. O exemplo implementa um **blog engine** mínimo em Astro (content collections + listagem + post individual).
-
-### O que o pipeline vai fazer
-
-O orchestrator lê a issue, valida quality gates, cria a branch `ai-sdlc/<issue>-<slug>`, invoca `cursor-agent` para implementar, roda gates de review e abre um PR. O escopo sugerido para a issue:
-
-| Entregável | Caminho esperado |
-| --- | --- |
-| Schema de conteúdo | `src/content/config.ts` |
-| Posts de exemplo | `src/content/blog/*.md` |
-| Listagem | `src/pages/blog/index.astro` |
-| Página de post | `src/pages/blog/[...slug].astro` |
-| Layout base | `src/layouts/BlogLayout.astro` |
-| Home linkando o blog | `src/pages/index.astro` |
-
-### Pré-requisitos operacionais
-
-Além do [Quick start](#quick-start) acima:
-
-1. Repositório no GitHub (local ou remoto).
-2. `GH_TOKEN` com escopo `repo` (issues + PRs + push).
-3. `CURSOR_API_KEY` exportado no shell.
-4. Remote `origin` configurado (substitui `your-org` em `.ai-sdlc/pipeline.yaml`).
-
-```sh
-cd ~/workspaces/jambu/aisdlc-astrojs
-
-git remote add origin git@github.com:SEU-ORG/aisdlc-astrojs.git
-git push -u origin main
-
-# carregar env
-cp .env.example .env
-# editar CURSOR_API_KEY e GH_TOKEN
-export $(grep -v '^#' .env | xargs)
-
-npm run ai-sdlc:check-cursor
-npm run ai-sdlc:health
-```
-
-### Passo 1 — Criar a issue no GitHub
-
-A pipeline dispara quando a issue recebe a label `ai-eligible` (ver `.ai-sdlc/pipeline.yaml`). A issue precisa de descrição e critérios de aceite — o quality gate `has-acceptance-criteria` exige isso.
+A pipeline exige label `ai-eligible` e critérios de aceite na descrição (quality gate `has-acceptance-criteria`).
 
 ```sh
 gh issue create \
-  --title "feat: blog engine with Astro content collections" \
+  --repo jgabriellima/aisdlc-astrojs \
+  --title "feat: minha feature" \
   --label "ai-eligible" \
   --body "$(cat <<'EOF'
 ## Summary
 
-Add a minimal blog engine to this Astro site using Content Collections.
+Descreva o que deve ser implementado.
 
 ## Acceptance criteria
 
-- [ ] `src/content/config.ts` defines a `blog` collection (title, description, pubDate, draft)
-- [ ] At least one sample post exists under `src/content/blog/`
-- [ ] `/blog` lists posts sorted by date (newest first)
-- [ ] `/blog/<slug>` renders a single post with title, date, and body
-- [ ] Home page (`/`) links to the blog index
-- [ ] `npm run build` completes without errors
-- [ ] No edits to `.github/workflows/**` or `.ai-sdlc/**`
-
-## Technical notes
-
-- Astro 6 + TypeScript strict
-- Static output only (no SSR)
-- Use `@astrojs/markdown` defaults; no extra CSS files — Tailwind if styling is needed (`npx astro add tailwind`)
-- Follow `.cursor/rules/ai-sdlc.mdc` constraints
+- [ ] Critério verificável 1
+- [ ] Critério verificável 2
+- [ ] `npm run build` passa
+- [ ] Sem edits em `.github/workflows/**` ou `.ai-sdlc/**`
 
 ## Out of scope
 
-- Comments, RSS, pagination, CMS integration
+O que NÃO fazer.
 EOF
 )"
 ```
 
-Anote o número da issue (ex.: `1`).
+O comando imprime a URL. Anote o número (ex.: `#3` → use `--issue 3`).
 
-### Passo 2 — (Opcional) Validar DoR antes de rodar
+Se a label não existir ainda:
 
-DoR está em modo `warn-only` (`.ai-sdlc/dor-config.yaml`). Issues mal formadas geram aviso, não bloqueio. Confira que a issue tem ACs binários e escopo delimitado.
+```sh
+gh label create "ai-eligible" \
+  --repo jgabriellima/aisdlc-astrojs \
+  --description "Eligible for AI-SDLC pipeline" \
+  --color "0E8A16"
+```
 
-### Passo 3 — Executar o pipeline
+### Passo 2 — Executar o pipeline
+
+```sh
+npm run ai-sdlc:run -- --issue 3
+```
+
+Substitua `3` pelo número real.
+
+Etapas internas:
+
+```text
+validate  → gates (descrição + ACs)
+code      → cursor-agent implementa na branch ai-sdlc/...
+review    → gates pós-implementação
+          → PR aberto no GitHub
+```
+
+Timeout do stage `code`: 30 min (`PT30M` em `.ai-sdlc/pipeline.yaml`).
+
+Modelo Cursor opcional:
+
+```sh
+export AI_SDLC_CURSOR_MODEL=composer-2
+npm run ai-sdlc:run -- --issue 3
+```
+
+### Passo 3 — Revisar o PR
+
+```sh
+gh pr list --repo jgabriellima/aisdlc-astrojs
+gh pr view --web
+```
+
+Localmente:
+
+```sh
+git fetch origin
+git checkout ai-sdlc/issue-3    # nome exato aparece no PR
+npm install
+npm run build
+npm run dev                     # http://localhost:4321
+```
+
+### Passo 4 — Merge
+
+```sh
+gh pr merge --squash
+git checkout main && git pull origin main
+npm run build
+```
+
+---
+
+## Exemplo concreto: blog engine (issue #1)
+
+Issue e PR já existem neste repo como referência.
+
+| Entregável | Caminho |
+| --- | --- |
+| Schema | `src/content/config.ts` |
+| Posts | `src/content/blog/*.md` |
+| Listagem | `src/pages/blog/index.astro` |
+| Post | `src/pages/blog/[...slug].astro` |
+| Home | link para `/blog` |
+
+Para reprocessar a issue #1 (branch já existe — esperado 422 no create ref, pipeline continua):
 
 ```sh
 npm run ai-sdlc:run -- --issue 1
 ```
 
-Substitua `1` pelo número real.
+---
 
-O que acontece internamente:
+## Alternativa sem pipeline
+
+Se ainda não quiser GitHub no loop:
+
+1. Abra o projeto no Cursor (MCP `ai-sdlc` em `.cursor/mcp.json`).
+2. Cole a descrição da issue no Agent chat.
+3. Valide: `npm run build && npm run dev`.
+
+Depois abra PR manualmente ou crie issue e re-rode o pipeline.
+
+---
+
+## Comandos
+
+| Comando | Quando usar |
+| --- | --- |
+| `npm run dev` | Servidor Astro local |
+| `npm run build` | Build de produção |
+| `npm run ai-sdlc:check-cursor` | Verificar Cursor CLI + MCP + `.env` |
+| `npm run ai-sdlc:health` | Validar config `.ai-sdlc/` |
+| `npm run ai-sdlc:validate` | Validar YAML contra JSON Schema |
+| `npm run ai-sdlc:run -- --issue N` | **Fluxo principal** — implementar issue #N |
+| `npm run ai-sdlc -- agents` | Roster de agentes / autonomia |
+| `npm run ai-sdlc -- status` | Estado do pipeline |
+
+Prefira `npm run ai-sdlc -- …` em vez do binário global `@ai-sdlc/orchestrator` (bug conhecido no symlink).
+
+---
+
+## Estrutura do projeto
 
 ```text
-issue (label ai-eligible)
-  → stage validate   (quality gates: descrição + ACs)
-  → stage code       (CursorRunner → cursor-agent --print)
-  → stage review     (quality gates pós-implementação)
-  → PR aberto        (branch ai-sdlc/1-blog-engine-...)
+.ai-sdlc/           pipeline, gates, autonomy (não editar via agente)
+.cursor/            MCP advisor, rules, context sources
+.github/workflows/  CI gates (ai-sdlc/pr-ready)
+scripts/            ai-sdlc-cli.mjs (Cursor runner + gh token)
+src/                código Astro
 ```
-
-Acompanhe logs no terminal. Timeout padrão do stage `code`: 30 min (`PT30M` em `pipeline.yaml`).
-
-### Passo 4 — Revisar o PR
-
-```sh
-gh pr list
-gh pr view --web
-```
-
-Checklist de revisão humana:
-
-- Diff limitado ao escopo da issue (agent role bloqueia `.ai-sdlc/**` e workflows).
-- `npm run build` passa no CI (`ai-sdlc/pr-ready`).
-- Rotas `/`, `/blog`, `/blog/<slug>` funcionam localmente.
-
-```sh
-git fetch origin
-git checkout ai-sdlc/1-blog-engine-with-astro-content-collections   # nome real da branch
-npm install
-npm run dev
-# abrir http://localhost:4321/blog
-```
-
-### Passo 5 — Merge e cleanup
-
-Após aprovação:
-
-```sh
-gh pr merge --squash
-git checkout main
-git pull origin main
-npm run build
-```
-
-A branch `ai-sdlc/*` é removida no merge (`cleanup: on-merge` em `pipeline.yaml`).
-
-### Passo 6 — Verificar autonomia e estado
-
-```sh
-npm run ai-sdlc -- agents
-npm run ai-sdlc -- status
-```
-
-O tracker de autonomia (`.ai-sdlc/autonomy-policy.yaml`) registra sucessos/falhas do agente — base para promoção de trust level em runs futuros.
 
 ---
 
-### Alternativa: implementar no Cursor sem pipeline
+## Troubleshooting
 
-Se você ainda não tem GitHub configurado, pode pedir a mesma feature diretamente no Cursor (Agent mode) com o MCP `ai-sdlc` ativo:
-
-1. Abra o projeto no Cursor (`~/workspaces/jambu/aisdlc-astrojs`).
-2. Confirme que `.cursor/mcp.json` está carregado (reload window se necessário).
-3. Cole o corpo da issue (Passo 1) no chat e peça implementação.
-4. Valide manualmente:
-
-```sh
-npm run build
-npm run dev
-```
-
-Depois de ter remote GitHub, converta o trabalho em PR normal ou re-execute o pipeline numa issue espelhando o que já foi feito.
-
----
-
-### Troubleshooting
-
-| Sintoma | Causa provável | Ação |
+| Sintoma | Causa | Ação |
 | --- | --- | --- |
-| `CURSOR_API_KEY is required` | Env não exportado | `export $(grep -v '^#' .env \| xargs)` |
-| Pipeline não dispara | Label ausente | `gh issue edit N --add-label ai-eligible` |
-| Gate `has-acceptance-criteria` falha | Issue sem ACs | Edite a issue; re-rode o pipeline |
-| `your-org` no pipeline | Sem git remote | Configure `origin` e atualize `.ai-sdlc/pipeline.yaml` |
-| Agente editou `.ai-sdlc/` | Violou `blockedPaths` | Reverta; re-rode com issue mais explícita |
-| PR check `ai-sdlc/pr-ready` falha | Build ou gate CI | Veja logs em Actions; corrija ou use `npm run ai-sdlc -- run --issue N` de novo |
+| `403` em `git/refs` | PAT no `.env` sem permissão | Remova `GITHUB_TOKEN`/`GH_TOKEN` do `.env`; use `gh auth login` |
+| `Authorization denied for astro.config.mjs` | ABAC level 0 só permitia `src/**` | Já corrigido em `autonomy-policy.yaml` — inclui configs na raiz |
+| `No files were modified` | `cursor-agent` não alterou arquivos | Verifique `CURSOR_API_KEY`; teste `cursor-agent --print "…"` na branch |
+| `422` em `git/refs` | Branch `ai-sdlc/issue-N` já existe | Normal em re-run; pipeline deve continuar |
+| `CURSOR_API_KEY is required` | `.env` vazio ou ausente | Preencha `.env` a partir de `.env.example` |
+| Gate `has-acceptance-criteria` | Issue sem ACs | Adicione checklist na descrição |
+| Pipeline não dispara (watch) | Sem label | `gh issue edit N --add-label ai-eligible` |
 
-Documentação oficial: [Getting Started](https://ai-sdlc.io/docs/getting-started) · [Runners](https://ai-sdlc.io/docs/api-reference/runners)
+---
 
-## Cursor integration
+## Referências
 
-| Path | Purpose |
-| --- | --- |
-| `.cursor/mcp.json` | `@ai-sdlc/mcp-advisor` MCP server (pinned to orchestrator 0.10.0) |
-| `.cursor/settings.json` | Context sources for `.ai-sdlc/` resources |
-| `.cursor/rules/ai-sdlc.mdc` | Always-on agent constraints |
-
-Reload the Cursor window after cloning so MCP and rules are picked up.
-
-## AI-SDLC resources
-
-| Resource | File |
-| --- | --- |
-| Pipeline | `.ai-sdlc/pipeline.yaml` |
-| Agent role | `.ai-sdlc/agent-role.yaml` |
-| Quality gates | `.ai-sdlc/quality-gate.yaml` |
-| Autonomy policy | `.ai-sdlc/autonomy-policy.yaml` |
-
-## Project structure
-
-```text
-/
-├── .ai-sdlc/           # AI-SDLC resource definitions
-├── .cursor/            # Cursor MCP, rules, context sources
-├── .github/workflows/  # CI quality gates
-├── public/
-├── scripts/            # CLI wrapper + validation
-├── src/pages/
-└── package.json
-```
-
-## Commands
-
-| Command | Action |
-| --- | --- |
-| `npm run dev` | Start Astro dev server |
-| `npm run build` | Build production site |
-| `npm run ai-sdlc:check-cursor` | Verify Cursor CLI + MCP + env |
-| `npm run ai-sdlc:health` | Verify AI-SDLC config |
-| `npm run ai-sdlc:validate` | Validate core YAML resources |
-| `npm run ai-sdlc:run -- --issue N` | Run pipeline with Cursor runner |
-
-## Global CLI (optional)
-
-```sh
-npm install -g @ai-sdlc/orchestrator
-```
-
-Prefer `npm run ai-sdlc -- <command>` — the global `ai-sdlc` symlink has a known entry-point bug; the local wrapper avoids it and pins Cursor as runner.
+- [AI-SDLC Getting Started](https://ai-sdlc.io/docs/getting-started)
+- [Runners (CursorRunner)](https://ai-sdlc.io/docs/api-reference/runners)
+- [Astro docs](https://docs.astro.build)
