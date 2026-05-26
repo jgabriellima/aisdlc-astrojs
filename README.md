@@ -3,7 +3,8 @@
 Astro.js site bootstrapped with the [AI-SDLC](https://ai-sdlc.io/docs/getting-started) orchestrator. **Cursor is the agent runtime** for pipeline execution.
 
 **Repositório:** https://github.com/jgabriellima/aisdlc-astrojs  
-**Issue pronta para processar:** [#1 — blog engine](https://github.com/jgabriellima/aisdlc-astrojs/issues/1)
+**Issue pronta para processar:** [#1 — blog engine](https://github.com/jgabriellima/aisdlc-astrojs/issues/1)  
+**PR em andamento:** [#2 — blog engine implementation](https://github.com/jgabriellima/aisdlc-astrojs/pull/2)
 
 ```sh
 cd ~/workspaces/jambu/aisdlc-astrojs
