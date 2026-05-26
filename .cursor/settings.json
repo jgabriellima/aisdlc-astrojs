@@ -1,0 +1,12 @@
+{
+  "contextSources": [
+    "CLAUDE.md",
+    ".ai-sdlc/pipeline.yaml",
+    ".ai-sdlc/agent-role.yaml",
+    ".ai-sdlc/quality-gate.yaml",
+    ".ai-sdlc/autonomy-policy.yaml"
+  ],
+  "rules": {
+    "autoAttach": true
+  }
+}

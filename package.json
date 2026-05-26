@@ -9,9 +9,18 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "astro": "astro"
+    "astro": "astro",
+    "ai-sdlc": "node ./scripts/ai-sdlc-cli.mjs",
+    "ai-sdlc:health": "npm run ai-sdlc -- health",
+    "ai-sdlc:validate": "node ./scripts/validate-resources.mjs",
+    "ai-sdlc:check-cursor": "node ./scripts/check-cursor-runtime.mjs",
+    "ai-sdlc:run": "npm run ai-sdlc -- run"
   },
   "dependencies": {
     "astro": "^6.3.7"
+  },
+  "devDependencies": {
+    "@ai-sdlc/orchestrator": "^0.10.0",
+    "@ai-sdlc/reference": "^0.10.0"
   }
 }

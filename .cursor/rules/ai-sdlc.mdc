@@ -1,0 +1,40 @@
+---
+description: AI-SDLC orchestrator constraints for this Astro.js project
+globs:
+  - "**/*"
+alwaysApply: true
+---
+
+# AI-SDLC + Cursor Runtime
+
+This repository uses **Cursor** as the agent runtime for AI-SDLC pipelines.
+
+## Runtime contract
+
+- Orchestrator invokes `cursor-agent --print --force --output-format=stream-json`
+- Auth: `CURSOR_API_KEY` (required for pipeline runs)
+- Optional model override: `AI_SDLC_CURSOR_MODEL`
+- MCP advisor: `.cursor/mcp.json` → `@ai-sdlc/mcp-advisor`
+
+## Configuration sources
+
+| Concern | Path |
+| --- | --- |
+| Pipeline | `.ai-sdlc/pipeline.yaml` |
+| Agent role | `.ai-sdlc/agent-role.yaml` |
+| Quality gates | `.ai-sdlc/quality-gate.yaml` |
+| Autonomy | `.ai-sdlc/autonomy-policy.yaml` |
+
+## Commands
+
+```sh
+npm run ai-sdlc:check-cursor   # verify Cursor runtime
+npm run ai-sdlc:health         # validate AI-SDLC config
+npm run ai-sdlc:run -- --issue 42
+```
+
+## Invariants
+
+- Do not edit `.github/workflows/**` or `.ai-sdlc/**` during agent code stages unless the task explicitly requires it.
+- Run `npm run build` before claiming a change is complete.
+- Prefer Tailwind utilities over raw CSS (except `src/styles/global.css` if added later).
