@@ -9,7 +9,14 @@ spec:
       description: All actions require human approval
       permissions:
         read: ['**']
-        write: ['src/**', 'test/**', 'tests/**']
+        write:
+          - 'src/**'
+          - 'test/**'
+          - 'tests/**'
+          - 'astro.config.mjs'
+          - 'package.json'
+          - 'package-lock.json'
+          - 'public/**'
         execute: ['test-suite']
       guardrails:
         requireApproval: all
@@ -24,7 +31,15 @@ spec:
       description: Routine changes are autonomous, complex changes need review
       permissions:
         read: ['**']
-        write: ['src/**', 'test/**', 'tests/**', 'docs/**']
+        write:
+          - 'src/**'
+          - 'test/**'
+          - 'tests/**'
+          - 'docs/**'
+          - 'astro.config.mjs'
+          - 'package.json'
+          - 'package-lock.json'
+          - 'public/**'
         execute: ['test-suite', 'lint', 'build']
       guardrails:
         requireApproval: security-critical-only

@@ -2,6 +2,14 @@
 
 Astro.js site bootstrapped with the [AI-SDLC](https://ai-sdlc.io/docs/getting-started) orchestrator. **Cursor is the agent runtime** for pipeline execution.
 
+**Repositório:** https://github.com/jgabriellima/aisdlc-astrojs  
+**Issue pronta para processar:** [#1 — blog engine](https://github.com/jgabriellima/aisdlc-astrojs/issues/1)
+
+```sh
+cd ~/workspaces/jambu/aisdlc-astrojs
+npm run ai-sdlc:run -- --issue 1
+```
+
 ## Prerequisites
 
 - Node.js >= 22
@@ -15,9 +23,13 @@ Astro.js site bootstrapped with the [AI-SDLC](https://ai-sdlc.io/docs/getting-st
 
 ```sh
 cp .env.example .env
-# Edit .env and set CURSOR_API_KEY=cur_...
-export $(grep -v '^#' .env | xargs)
+# Edit .env — set CURSOR_API_KEY only; GitHub token comes from `gh auth login`
+gh auth login   # if not already authenticated
+
+npm run ai-sdlc:check-cursor
 ```
+
+The CLI wrapper reads `.env` for `CURSOR_API_KEY` and resolves `GITHUB_TOKEN` from `gh auth token` automatically.
 
 ### 2. Verify Cursor runtime
 

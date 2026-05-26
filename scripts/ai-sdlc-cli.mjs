@@ -37,8 +37,16 @@ function loadEnvFile() {
 }
 
 function bootstrapGitHubEnv() {
-  if (!process.env.GITHUB_TOKEN && process.env.GH_TOKEN) {
-    process.env.GITHUB_TOKEN = process.env.GH_TOKEN;
+  try {
+    const ghToken = execSync('gh auth token', { encoding: 'utf8' }).trim();
+    if (ghToken) {
+      process.env.GITHUB_TOKEN = ghToken;
+      process.env.GH_TOKEN = ghToken;
+    }
+  } catch {
+    if (!process.env.GITHUB_TOKEN && process.env.GH_TOKEN) {
+      process.env.GITHUB_TOKEN = process.env.GH_TOKEN;
+    }
   }
 
   if (process.env.GITHUB_REPOSITORY && process.env.GITHUB_REPOSITORY_OWNER) {
