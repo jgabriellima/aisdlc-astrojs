@@ -1,0 +1,32 @@
+---
+import { getCollection } from 'astro:content';
+import BlogLayout from '../../layouts/BlogLayout.astro';
+import { isPublishedPost, sortPostsByDateNewestFirst, getPostSlug } from '../../lib/blog';
+
+const posts = sortPostsByDateNewestFirst(
+	await getCollection('blog', isPublishedPost),
+);
+---
+
+<BlogLayout title="Blog" description="Latest posts from the Astro blog engine.">
+	<h1>Blog</h1>
+	<ul>
+		{
+			posts.map((post) => (
+				<li>
+					<a href={`/blog/${getPostSlug(post)}/`}>
+						<h2>{post.data.title}</h2>
+					</a>
+					<p>{post.data.description}</p>
+					<time datetime={post.data.pubDate.toISOString()}>
+						{post.data.pubDate.toLocaleDateString('en-US', {
+							year: 'numeric',
+							month: 'long',
+							day: 'numeric',
+						})}
+					</time>
+				</li>
+			))
+		}
+	</ul>
+</BlogLayout>
